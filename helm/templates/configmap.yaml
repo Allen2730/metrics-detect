@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-config
+data:
+  config.json: |
+    {
+      "ingestion": {
+        "mode": {{ .Values.config.ingestion.mode | quote }},
+        "file_path": "./data/sample_metrics.txt",
+        "prometheus_url": {{ .Values.config.ingestion.prometheusUrl | quote }}
+      },
+      "ai": {
+        "provider": {{ .Values.config.ai.provider | quote }},
+        "api_key": "",
+        "model": {{ .Values.config.ai.model | quote }},
+        "timeout": {{ .Values.config.ai.timeout }},
+        "enabled": {{ .Values.config.ai.enabled }}
+      },
+      "detection": {
+        "deprecated_prefixes": ["old_", "legacy_", "deprecated_"],
+        "deprecated_suffixes": ["_old", "_legacy", "_deprecated"],
+        "known_service_names": ["payment", "order", "user", "inventory", "gateway", "auth", "product", "cart", "notification", "search"],
+        "high_cardinality_threshold": {{ .Values.config.detection.highCardinalityThreshold }},
+        "redundant_patterns": ["^test_", "^debug_", "^tmp_", ".*_\\d+$"]
+      },
+      "report": {
+        "output_dir": {{ .Values.persistence.mountPath | quote }},
+        "enable_markdown": {{ .Values.config.report.enableMarkdown }},
+        "enable_excel": {{ .Values.config.report.enableExcel }}
+      },
+      "log": {
+        "level": {{ .Values.config.log.level | quote }},
+        "file": "{{ .Values.persistence.mountPath }}/analysis.log"
+      }
+    }

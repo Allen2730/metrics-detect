@@ -1,0 +1,32 @@
+{
+  "ingestion": {
+    "mode": "file",
+    "file_path": "./data/sample_metrics.txt",
+    "prometheus_url": "http://localhost:9090"
+  },
+  "ai": {
+    "provider": "claude",
+    "api_key": "",
+    "api_key_file": "",
+    "model": "claude-sonnet-4-6",
+    "timeout": 60,
+    "enabled": true
+  },
+  "detection": {
+    "deprecated_prefixes": ["old_", "legacy_", "deprecated_"],
+    "deprecated_suffixes": ["_old", "_legacy", "_deprecated"],
+    "known_service_names": ["payment", "order", "user", "inventory", "gateway", "auth", "product", "cart", "notification", "search"],
+    "high_cardinality_threshold": 100,
+    "redundant_patterns": ["^test_", "^debug_", "^tmp_", ".*_\\d+$"],
+    "service_label_keys": ["job", "app", "service", "app_kubernetes_io_name", "service_name", "k8s_app"]
+  },
+  "report": {
+    "output_dir": "./output",
+    "enable_markdown": true,
+    "enable_excel": true
+  },
+  "log": {
+    "level": "info",
+    "file": "./output/analysis.log"
+  }
+}

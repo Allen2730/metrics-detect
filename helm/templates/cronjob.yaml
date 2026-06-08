@@ -1,0 +1,47 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    app: {{ .Release.Name }}
+spec:
+  schedule: {{ .Values.schedule | quote }}
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: analyzer
+              image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              args: ["analyze", "--config", "/app/config/config.json"]
+              env:
+                - name: CLAUDE_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Values.secret.name }}
+                      key: {{ .Values.secret.claudeKeyField }}
+                      optional: true
+                - name: DEEPSEEK_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Values.secret.name }}
+                      key: {{ .Values.secret.deepseekKeyField }}
+                      optional: true
+              volumeMounts:
+                - name: config
+                  mountPath: /app/config
+                {{- if .Values.persistence.enabled }}
+                - name: output
+                  mountPath: {{ .Values.persistence.mountPath }}
+                {{- end }}
+          volumes:
+            - name: config
+              configMap:
+                name: {{ .Release.Name }}-config
+            {{- if .Values.persistence.enabled }}
+            - name: output
+              persistentVolumeClaim:
+                claimName: {{ .Release.Name }}-output
+            {{- end }}

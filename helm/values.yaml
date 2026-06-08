@@ -1,0 +1,38 @@
+image:
+  repository: prometheus-analyzer
+  tag: latest
+  pullPolicy: IfNotPresent
+
+# 调度策略：CronJob 定时触发
+schedule: "0 2 * * *"  # 每天凌晨 2 点执行
+
+# AI API Key 通过 K8s Secret 注入
+secret:
+  name: ai-api-key
+  claudeKeyField: CLAUDE_API_KEY
+  deepseekKeyField: DEEPSEEK_API_KEY
+
+# 报告输出：PVC 挂载
+persistence:
+  enabled: true
+  storageClass: ""
+  size: 1Gi
+  mountPath: /app/output
+
+# 覆盖 config.json 配置
+config:
+  ingestion:
+    mode: prometheus
+    prometheusUrl: "http://prometheus.monitoring.svc.cluster.local:9090"
+  ai:
+    provider: claude
+    model: claude-sonnet-4-6
+    timeout: 60
+    enabled: true
+  detection:
+    highCardinalityThreshold: 1000
+  report:
+    enableMarkdown: true
+    enableExcel: true
+  log:
+    level: info

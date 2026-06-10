@@ -12,20 +12,24 @@
 
 **确定性检测**（有明确证据，无需人工复核）
 
-| 类型 | 说明 | 风险等级 |
-|------|------|----------|
-| 高基数指标 | Label 组合数超阈值，按超出倍数分级：100×+ OOM 风险 / 10×~100× 显著 / 1×~10× 轻微 | 🔴🟡🟢 按倍数 |
-| 空值/NaN 指标 | 空名称、空 Label Key、全空 Value、NaN 值 | 🔴 严重 |
-| 违规标签指标 | Label Key 含非法字符、保留前缀 `__`、超长 | 🔴 严重 |
-| 重复指标 | 完全相同的名称+标签键值对重复上报 | 🟡 一般 |
-| 孤儿指标 | 动态模式：服务标签不在存活 target 中；静态模式：前缀不在白名单 | 🟡 一般 |
+
+| 类型        | 说明                                                            | 风险等级       |
+| --------- | ------------------------------------------------------------- | ---------- |
+| 高基数指标     | Label 组合数超阈值，按超出倍数分级：100×+ OOM 风险 / 10×~~100× 显著 / 1×~~10× 轻微 | 🔴🟡🟢 按倍数 |
+| 空值/NaN 指标 | 空名称、空 Label Key、全空 Value、NaN 值                                | 🔴 严重      |
+| 违规标签指标    | Label Key 含非法字符、保留前缀 `__`、超长                                  | 🔴 严重      |
+| 重复指标      | 完全相同的名称+标签键值对重复上报                                             | 🟡 一般      |
+| 孤儿指标      | 动态模式：服务标签不在存活 target 中；静态模式：前缀不在白名单                           | 🟡 一般      |
+
 
 **候选检测**（多信号推断，附置信度标注，建议人工复核）
 
-| 类型 | 强证据（HIGH）| 中等证据（MEDIUM）| 弱信号（LOW）|
-|------|-------------|-----------------|------------|
-| 疑似废弃 | HELP 文本含 `DEPRECATED` / 生命周期标签 | 未被 Prometheus 规则引用 | 名称前缀/后缀/关键字 |
-| 疑似冗余 | 历史行为：stale / 7天恒零 / 7天静止 | 环境标签（env=dev/test）/ 未被规则引用 | 名称模式 / 无任何标签 |
+
+| 类型   | 强证据（HIGH）                      | 中等证据（MEDIUM）               | 弱信号（LOW）     |
+| ---- | ------------------------------ | -------------------------- | ------------ |
+| 疑似废弃 | HELP 文本含 `DEPRECATED` / 生命周期标签 | 未被 Prometheus 规则引用         | 名称前缀/后缀/关键字  |
+| 疑似冗余 | 历史行为：stale / 7天恒零 / 7天静止       | 环境标签（env=dev/test）/ 未被规则引用 | 名称模式 / 无任何标签 |
+
 
 ### AI 智能分析
 
@@ -136,12 +140,10 @@ go build -o prometheus-analyzer .
 
 ```bash
 # Claude
-export CLAUDE_API_KEY=sk-ant-xxxx
-./prometheus-analyzer analyze
+./prometheus-analyzer analyze --api-key=sk-ant-xxxx
 
 # DeepSeek
-export DEEPSEEK_API_KEY=sk-xxxx
-./prometheus-analyzer analyze --provider deepseek
+./prometheus-analyzer analyze --provider deepseek --api-key=sk-xxxx
 ```
 
 **方式三：指定输入文件**
@@ -196,11 +198,13 @@ Flags:
 
 支持三种注入方式，优先级从高到低：
 
-| 优先级 | 方式 | 说明 |
-|--------|------|------|
-| 1 | 环境变量 | `CLAUDE_API_KEY` 或 `DEEPSEEK_API_KEY` |
-| 2 | 文件挂载 | `config.json` 中 `api_key_file` 指定路径（Docker Secret 场景） |
-| 3 | 配置文件 | `config.json` 中 `api_key` 字段（不推荐提交到代码仓库） |
+
+| 优先级 | 方式   | 说明                                                    |
+| --- | ---- | ----------------------------------------------------- |
+| 1   | 环境变量 | `CLAUDE_API_KEY` 或 `DEEPSEEK_API_KEY`                 |
+| 2   | 文件挂载 | `config.json` 中 `api_key_file` 指定路径（Docker Secret 场景） |
+| 3   | 配置文件 | `config.json` 中 `api_key` 字段（不推荐提交到代码仓库）              |
+
 
 ---
 
@@ -320,21 +324,26 @@ output/
 
 ## 技术栈
 
-| 组件 | 技术选型 |
-|------|----------|
-| 开发语言 | Go 1.22 |
-| CLI 框架 | [cobra](https://github.com/spf13/cobra) |
-| 日志 | [zap](https://github.com/uber-go/zap) |
-| Excel 输出 | [excelize](https://github.com/xuri/excelize) |
+
+| 组件         | 技术选型                                                               |
+| ---------- | ------------------------------------------------------------------ |
+| 开发语言       | Go 1.22                                                            |
+| CLI 框架     | [cobra](https://github.com/spf13/cobra)                            |
+| 日志         | [zap](https://github.com/uber-go/zap)                              |
+| Excel 输出   | [excelize](https://github.com/xuri/excelize)                       |
 | Claude SDK | [anthropic-sdk-go](https://github.com/anthropics/anthropic-sdk-go) |
-| 容器化 | Docker 多阶段构建 |
-| K8s 部署 | Helm Chart（CronJob 模式） |
+| 容器化        | Docker 多阶段构建                                                       |
+| K8s 部署     | Helm Chart（CronJob 模式）                                             |
+
 
 ---
 
 ## 设计文档
 
-| 文档 | 内容 |
-|------|------|
-| [docs/design.md](docs/design.md) | 整体架构、模块分层、数据流、AI 模块、配置设计、Helm 部署方案 |
+
+| 文档                                                 | 内容                                    |
+| -------------------------------------------------- | ------------------------------------- |
+| [docs/design.md](docs/design.md)                   | 整体架构、模块分层、数据流、AI 模块、配置设计、Helm 部署方案    |
 | [docs/detection-rules.md](docs/detection-rules.md) | 七类无效指标的完整检测链路、证据体系、置信度综合规则、输出示例、已知局限性 |
+
+

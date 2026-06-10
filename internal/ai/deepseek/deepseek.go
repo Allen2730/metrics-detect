@@ -54,7 +54,12 @@ func (p *Provider) Analyze(ctx context.Context, prompt string) (string, error) {
 
 	data, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("deepseek API error %d: %s", resp.StatusCode, string(data))
+		// 截取前256字节防止响应体中意外包含敏感信息
+		body := string(data)
+		if len(body) > 256 {
+			body = body[:256] + "...(truncated)"
+		}
+		return "", fmt.Errorf("deepseek API error %d: %s", resp.StatusCode, body)
 	}
 
 	var result struct {

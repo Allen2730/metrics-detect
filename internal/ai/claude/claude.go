@@ -30,7 +30,12 @@ func (p *Provider) Analyze(ctx context.Context, prompt string) (string, error) {
 		},
 	})
 	if err != nil {
-		return "", fmt.Errorf("claude API call failed: %w", err)
+		// 截断错误信息以防 SDK 在错误描述中包含 API Key
+		errMsg := err.Error()
+		if len(errMsg) > 256 {
+			errMsg = errMsg[:256] + "...(truncated)"
+		}
+		return "", fmt.Errorf("claude API call failed: %s", errMsg)
 	}
 	if len(msg.Content) == 0 {
 		return "", fmt.Errorf("claude returned empty response")

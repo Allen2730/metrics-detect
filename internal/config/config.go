@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"go.uber.org/zap/zapcore"
 )
 
 type Config struct {
@@ -49,6 +51,28 @@ type ReportConfig struct {
 type LogConfig struct {
 	Level string `json:"level"`
 	File  string `json:"file"`
+}
+
+// MarshalLogObject 实现 zapcore.ObjectMarshaler，确保 APIKey 在日志中以掩码输出。
+func (a AIConfig) MarshalLogObject(enc zapcore.ObjectEncoder) error {
+	enc.AddString("provider", a.Provider)
+	enc.AddString("model", a.Model)
+	enc.AddString("api_key", maskAPIKey(a.APIKey))
+	enc.AddInt("timeout", a.Timeout)
+	enc.AddBool("enabled", a.Enabled)
+	return nil
+}
+
+// maskAPIKey 保留首4位和末4位，中间以 * 替换。
+// 长度 ≤8 时全部掩码，空字符串原样返回。
+func maskAPIKey(key string) string {
+	if key == "" {
+		return ""
+	}
+	if len(key) <= 8 {
+		return "***"
+	}
+	return key[:4] + strings.Repeat("*", len(key)-8) + key[len(key)-4:]
 }
 
 func Load(path string) (*Config, error) {

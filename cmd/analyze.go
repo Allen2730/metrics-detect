@@ -24,12 +24,12 @@ import (
 )
 
 var (
-	flagNoAI       bool
-	flagOutput     string
-	flagInput      string
-	flagProvider   string
-	flagAPIKey     string
-	flagRelabel    bool   // 是否生成 relabel 规则文件
+	flagNoAI     bool
+	flagOutput   string
+	flagInput    string
+	flagProvider string
+	flagAPIKey   string
+	flagRelabel  bool // 是否生成 relabel 规则文件
 )
 
 var analyzeCmd = &cobra.Command{
@@ -81,8 +81,7 @@ func runAnalyze(cmd *cobra.Command, args []string) error {
 
 	logger.Info("analysis started",
 		zap.String("mode", cfg.Ingestion.Mode),
-		zap.String("ai_provider", cfg.AI.Provider),
-		zap.Bool("ai_enabled", cfg.AI.Enabled),
+		zap.Object("ai", cfg.AI),
 	)
 
 	// 1. 数据接入
@@ -140,11 +139,11 @@ func runAnalyze(cmd *cobra.Command, args []string) error {
 	// 4. AI 分析
 	var aiResult model.AIAnalysisResult
 	if cfg.AI.Enabled {
-		provider, err := buildProvider(cfg.AI)
+		provider, effectiveModel, err := buildProvider(cfg.AI)
 		if err != nil {
 			logger.Warn("AI provider init failed, skipping AI analysis", zap.Error(err))
 		} else {
-			analyzer := ai.NewAnalyzer(provider, cfg.AI.Model, cfg.AI.Timeout)
+			analyzer := ai.NewAnalyzer(provider, effectiveModel, cfg.AI.Timeout)
 			fmt.Println("正在进行 AI 智能分析，请稍候...")
 			aiResult, err = analyzer.Analyze(stats, invalids)
 			if err != nil {
@@ -272,22 +271,25 @@ func preFilterRedundantCandidates(
 	return names
 }
 
-func buildProvider(cfg config.AIConfig) (ai.LLMProvider, error) {
+// buildProvider 构造 LLM 提供者，同时返回实际使用的模型名。
+// 当配置的 model 属于另一个 provider（如 provider=deepseek 却配了 claude-* 的模型名），
+// 自动切换为当前 provider 的默认模型，避免跨 provider 的模型名混用。
+func buildProvider(cfg config.AIConfig) (ai.LLMProvider, string, error) {
 	if cfg.APIKey == "" {
-		return nil, fmt.Errorf("API key not configured for provider '%s'", cfg.Provider)
+		return nil, "", fmt.Errorf("API key not configured for provider '%s'", cfg.Provider)
 	}
 	switch strings.ToLower(cfg.Provider) {
 	case "deepseek":
 		model := cfg.Model
-		if model == "" {
-			model = "deepseek-chat"
+		if model == "" || strings.HasPrefix(strings.ToLower(model), "claude") {
+			model = "deepseek-v4-flash"
 		}
-		return deepseek.New(cfg.APIKey, model), nil
+		return deepseek.New(cfg.APIKey, model), model, nil
 	default: // claude
 		model := cfg.Model
-		if model == "" {
+		if model == "" || strings.HasPrefix(strings.ToLower(model), "deepseek") {
 			model = "claude-sonnet-4-6"
 		}
-		return claude.New(cfg.APIKey, model), nil
+		return claude.New(cfg.APIKey, model), model, nil
 	}
 }
